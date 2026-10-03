@@ -1,0 +1,1051 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River Impact Cisadane - Interceptor 020</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-cyan-800 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-cyan-700 p-2.5 rounded-xl shadow-inner">
+                    <i class="fa-solid fa-water text-2xl text-cyan-100"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">River Impact Cisadane</h1>
+                    <p class="text-xs text-cyan-200">Monitoring Sampah Sungai Cisadane, Sampah Warga, & Pengangkutan Truk</p>
+                </div>
+            </div>
+            
+            <!-- RIGHT HEADER ACTIONS: TABS & FILTER POPUP & EXPORT -->
+            <div class="flex flex-wrap items-center gap-2 justify-end w-full sm:w-auto">
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition bg-cyan-900 text-white shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-chart-pie mr-1.5"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('sungai')" id="nav-sungai" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition hover:bg-cyan-700/50 text-cyan-100 whitespace-nowrap">
+                        <i class="fa-solid fa-water mr-1.5"></i> Sampah Sungai
+                    </button>
+                    <button onclick="switchTab('warga')" id="nav-warga" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition hover:bg-cyan-700/50 text-cyan-100 whitespace-nowrap">
+                        <i class="fa-solid fa-users mr-1.5"></i> Sampah Warga
+                    </button>
+                    <button onclick="switchTab('truk')" id="nav-truk" class="tab-btn px-4 py-2 rounded-lg font-medium text-sm transition hover:bg-cyan-700/50 text-cyan-100 whitespace-nowrap">
+                        <i class="fa-solid fa-truck mr-1.5"></i> Truk Keluar
+                    </button>
+                </div>
+
+                <!-- QUICK DOWNLOAD APP & MEMORY BACKUP -->
+                <button onclick="downloadDeviceMemory()" class="bg-cyan-600 hover:bg-cyan-500 text-white p-2.5 rounded-xl transition flex items-center justify-center w-10 h-10 shadow-sm" title="Unduh File ke Memori HP/Perangkat">
+                    <i class="fa-solid fa-cloud-arrow-down text-lg"></i>
+                </button>
+
+                <!-- 3-DOTS MENU DROPDOWN (DATE FILTER, KIRIM/EKSPOR & CETAK PRINT) -->
+                <div class="relative">
+                    <button onclick="toggleFilterMenu()" class="bg-cyan-700 hover:bg-cyan-600 text-white p-2.5 rounded-xl transition flex items-center justify-center w-10 h-10 shadow-sm" title="Menu Opsi & Filter">
+                        <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                    </button>
+                    
+                    <div id="filter-dropdown" class="hidden absolute right-0 mt-2 w-72 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-100 p-4 z-50 space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <span class="font-bold text-xs uppercase text-slate-500"><i class="fa-solid fa-bars-staggered mr-1 text-cyan-600"></i> Menu & Filter Data</span>
+                            <button onclick="toggleFilterMenu()" class="text-slate-400 hover:text-slate-600 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        
+                        <!-- 1. Bagian Pilihan Tanggal -->
+                        <div class="space-y-2 border-b border-slate-100 pb-3">
+                            <label class="block text-[11px] font-semibold text-slate-600 uppercase"><i class="fa-solid fa-filter mr-1 text-cyan-600"></i> Filter Periode Tanggal</label>
+                            <select id="date-filter-mode" onchange="onFilterModeChange(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <option value="all">Semua Transaksi (Tanpa Batas)</option>
+                                <option value="today">Hari Ini</option>
+                                <option value="month">Bulan Ini</option>
+                                <option value="custom">Pilih Tanggal Tertentu</option>
+                            </select>
+                            <div id="custom-date-container" class="hidden pt-1">
+                                <input type="date" id="filter-date-picker" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- 2. Bagian Kirim / Ekspor Data Rapi -->
+                        <div class="space-y-1.5 border-b border-slate-100 pb-3">
+                            <label class="block text-[11px] font-semibold text-slate-600 uppercase"><i class="fa-solid fa-share-nodes mr-1 text-teal-600"></i> Kirim & Ekspor Data</label>
+                            <button onclick="downloadExcel(); toggleFilterMenu();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-cyan-50 hover:text-cyan-700 rounded-xl flex items-center gap-2 transition">
+                                <i class="fa-solid fa-file-excel text-emerald-600 w-4"></i> Unduh Rekap Excel (CSV)
+                            </button>
+                            <button onclick="exportDataJSON(); toggleFilterMenu();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-cyan-50 hover:text-cyan-700 rounded-xl flex items-center gap-2 transition">
+                                <i class="fa-solid fa-file-code text-cyan-600 w-4"></i> Unduh File Backup (JSON)
+                            </button>
+                        </div>
+
+                        <!-- 3. Bagian Cetak Print -->
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-semibold text-slate-600 uppercase"><i class="fa-solid fa-print mr-1 text-amber-600"></i> Cetak Dokumen</label>
+                            <button onclick="downloadPDF(); toggleFilterMenu();" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 rounded-xl flex items-center gap-2 transition">
+                                <i class="fa-solid fa-file-pdf text-rose-600 w-4"></i> Cetak / Print Laporan PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+            <span id="toast-msg" class="text-sm font-medium">Berhasil menyimpan data!</span>
+        </div>
+
+        <!-- 1. TAB DASHBOARD -->
+        <section id="tab-content-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sampah Sungai</p>
+                        <h3 id="stat-sungai" class="text-2xl font-bold text-slate-700 mt-1">0 kg</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-water"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sampah Warga</p>
+                        <h3 id="stat-warga" class="text-2xl font-bold text-slate-700 mt-1">0 kg</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Keluar (Truk)</p>
+                        <h3 id="stat-truk" class="text-2xl font-bold text-slate-700 mt-1">0 kg</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-truck"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Estimasi di TPS</p>
+                        <h3 id="stat-sisa" class="text-2xl font-bold text-cyan-600 mt-1">0 kg</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-warehouse"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart & Summary Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+                    <h3 class="text-base font-bold text-slate-800 mb-4"><i class="fa-solid fa-chart-line text-cyan-600 mr-2"></i>Komposisi Alur Sampah Cisadane</h3>
+                    <div class="relative h-72 w-full">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 mb-4"><i class="fa-solid fa-bolt text-amber-500 mr-2"></i>Aksi Cepat & Ekspor</h3>
+                        <div class="space-y-3">
+                            <button onclick="openModal('sungai')" class="w-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-semibold p-3 rounded-xl transition flex items-center justify-between text-sm">
+                                <span><i class="fa-solid fa-plus-circle mr-2"></i> Catat Sampah Sungai</span>
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                            <button onclick="openModal('warga')" class="w-full bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold p-3 rounded-xl transition flex items-center justify-between text-sm">
+                                <span><i class="fa-solid fa-plus-circle mr-2"></i> Catat Sampah Warga</span>
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                            <button onclick="openModal('truk')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold p-3 rounded-xl transition flex items-center justify-between text-sm">
+                                <span><i class="fa-solid fa-plus-circle mr-2"></i> Catat Truk Keluar</span>
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-400 text-center">
+                        River Impact Cisadane v2.4
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOMBOL RESET / HAPUS SEMUA DATA DI BAGIAN BAWAH -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-triangle-exclamation text-rose-500 mr-2"></i>Reset & Kosongkan Data Transaksi</h4>
+                    <p class="text-xs text-slate-500 mt-0.5">Menghapus seluruh rekaman data sampah sungai, setoran warga, dan truk keluar yang tersimpan.</p>
+                </div>
+                <button onclick="confirmResetAllData()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-semibold px-4 py-2.5 rounded-xl transition text-xs flex items-center gap-2 whitespace-nowrap shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> Reset Semua Data
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. TAB SAMPAH SUNGAI -->
+        <section id="tab-content-sungai" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Pencatatan Sampah Masuk dari Aliran Sungai Cisadane</h2>
+                    <p class="text-xs text-slate-500">Rekam pembersihan sampah yang diangkat dari aliran Sungai Cisadane lengkap dengan foto struk timbangan.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="search-sungai" oninput="renderTables()" placeholder="Cari titik/petugas..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-48">
+                    <button onclick="openModal('sungai')" class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-plus"></i> Tambah
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold uppercase text-slate-500">
+                                <th class="p-4">Tanggal</th>
+                                <th class="p-4">Lokasi / Sektor Cisadane</th>
+                                <th class="p-4">Jenis Sampah</th>
+                                <th class="p-4">Berat (kg)</th>
+                                <th class="p-4">Petugas</th>
+                                <th class="p-4 text-center">Foto Struk</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-sungai-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. TAB SETORAN WARGA -->
+        <section id="tab-content-warga" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Pencatatan Setoran Sampah Warga</h2>
+                    <p class="text-xs text-slate-500">Rekam sampah rumah tangga dari warga beserta foto struk/nota setoran.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="search-warga" oninput="renderTables()" placeholder="Cari petugas/kategori..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48">
+                    <button onclick="openModal('warga')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-plus"></i> Tambah
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold uppercase text-slate-500">
+                                <th class="p-4">Tanggal</th>
+                                <th class="p-4">Petugas Pengangkutan</th>
+                                <th class="p-4">Kategori</th>
+                                <th class="p-4">Berat (kg)</th>
+                                <th class="p-4">Catatan</th>
+                                <th class="p-4 text-center">Foto Struk</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-warga-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. TAB TRUK KELUAR -->
+        <section id="tab-content-truk" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Pencatatan Sampah Keluar via Truk</h2>
+                    <p class="text-xs text-slate-500">Rekam pengangkutan ke TPA beserta foto struk timbangan jembatan.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="search-truk" oninput="renderTables()" placeholder="Cari plat/sopir/tujuan..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-48">
+                    <button onclick="openModal('truk')" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-plus"></i> Tambah
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold uppercase text-slate-500">
+                                <th class="p-4">Tanggal</th>
+                                <th class="p-4">No. Polisi Truk</th>
+                                <th class="p-4">Nama Sopir</th>
+                                <th class="p-4">Tujuan TPA</th>
+                                <th class="p-4">Berat (kg)</th>
+                                <th class="p-4 text-center">Foto Struk</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-truk-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL FORM -->
+    <div id="form-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 id="modal-title" class="font-bold text-slate-800 text-base">Form Input</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="dynamic-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4 overflow-y-auto">
+                <input type="hidden" id="form-type" value="">
+                <input type="hidden" id="edit-id" value="">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tanggal & Waktu</label>
+                    <input type="datetime-local" id="input-date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+
+                <!-- Dynamic Fields container -->
+                <div id="dynamic-fields" class="space-y-4">
+                    <!-- Injected by JS based on type -->
+                </div>
+
+                <!-- Photo Struk Field (Universal) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Unggah Foto Struk / Nota Timbangan</label>
+                    <div class="flex items-center gap-3">
+                        <input type="file" id="input-receipt" accept="image/*" onchange="previewImage(this)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100">
+                    </div>
+                    <input type="hidden" id="receipt-base64" value="">
+                    <div id="receipt-preview-container" class="mt-2 hidden">
+                        <img id="receipt-preview-img" src="" alt="Preview Struk" class="h-24 rounded-lg border border-slate-200 object-cover">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 sticky bottom-0 bg-white pb-2">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition">Batal</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-medium text-sm shadow-sm transition">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- IMAGE LIGHTBOX MODAL -->
+    <div id="lightbox-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden" onclick="closeLightbox()">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 relative overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-receipt text-cyan-600 mr-2"></i>Foto Struk / Nota Timbangan</h3>
+                <button onclick="closeLightbox()" class="text-slate-400 hover:text-slate-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="py-4 flex justify-center bg-slate-900 rounded-xl mt-3">
+                <img id="lightbox-img" src="" alt="Struk Timbangan" class="max-h-[70vh] rounded-lg object-contain">
+            </div>
+            <div class="flex justify-end pt-3">
+                <a id="lightbox-download" href="" download="struk_timbangan.png" class="bg-cyan-600 hover:bg-cyan-700 text-white text-xs px-4 py-2 rounded-xl font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> Unduh Foto Ini
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center space-y-4">
+            <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirm-title" class="text-base font-bold text-slate-800">Hapus Data?</h3>
+            <p id="confirm-desc" class="text-xs text-slate-500">Data dan foto struk yang dihapus tidak dapat dikembalikan lagi.</p>
+            <div class="flex gap-3 justify-center pt-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50">Batal</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Store (In-Memory with LocalStorage persistence)
+        let appData = {
+            sungai: JSON.parse(localStorage.getItem('cisadane_sungai')) || [
+                { id: '1', date: '2026-06-01T08:30', location: 'interceptor', wasteType: 'Plastik & Organik Campur', weight: 450, officer: 'Tim Interceptor Cisadane 020', receipt: '' },
+                { id: '2', date: '2026-06-02T09:15', location: 'Aliran Cisadane', wasteType: 'Limbah Plastik Botol', weight: 320, officer: 'Tim Kebersihan', receipt: '' }
+            ],
+            warga: JSON.parse(localStorage.getItem('cisadane_warga')) || [
+                { id: '1', date: '2026-06-01T10:00', citizen: 'Acan', category: 'Plastik Daur Ulang', weight: 45, note: 'Sudah dipilah bersih', receipt: '' },
+                { id: '2', date: '2026-06-02T11:20', citizen: 'Budi', category: 'Kertas & Kardus', weight: 60, note: 'Kardus bekas kemasan', receipt: '' }
+            ],
+            truk: JSON.parse(localStorage.getItem('cisadane_truk')) || [
+                { id: '1', date: '2026-06-02T15:00', plate: 'F 8421 EA', driver: 'Salim', destination: 'TPA Jatiwaringin', weight: 750, receipt: '' }
+            ]
+        };
+
+        let currentTab = 'dashboard';
+        let mainChartInstance = null;
+        let deleteTarget = { type: null, id: null, mode: null };
+        let activeFilterMode = 'all'; // 'all', 'today', 'month', 'custom'
+        let activeCustomDate = '';
+
+        // Toggle Filter Dropdown Menu
+        function toggleFilterMenu() {
+            const dropdown = document.getElementById('filter-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Handle Filter Mode Change
+        function onFilterModeChange(mode) {
+            activeFilterMode = mode;
+            const customContainer = document.getElementById('custom-date-container');
+            if(mode === 'custom') {
+                customContainer.classList.remove('hidden');
+                const todayStr = new Date().toISOString().slice(0, 10);
+                document.getElementById('filter-date-picker').value = todayStr;
+                activeCustomDate = todayStr;
+            } else {
+                customContainer.classList.add('hidden');
+                activeCustomDate = '';
+            }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            if(activeFilterMode === 'custom') {
+                activeCustomDate = document.getElementById('filter-date-picker').value;
+            }
+            updateDashboard();
+            renderTables();
+        }
+
+        // Filter helper based on current active settings
+        function filterItemByDate(item) {
+            if(activeFilterMode === 'all') return true;
+            if(!item.date) return false;
+            const itemDateOnly = item.date.slice(0, 10);
+            
+            if(activeFilterMode === 'today') {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                return itemDateOnly === todayStr;
+            }
+            if(activeFilterMode === 'month') {
+                const currentMonthPrefix = new Date().toISOString().slice(0, 7); // YYYY-MM
+                return itemDateOnly.startsWith(currentMonthPrefix);
+            }
+            if(activeFilterMode === 'custom') {
+                return itemDateOnly === activeCustomDate;
+            }
+            return true;
+        }
+
+        // Save data to LocalStorage
+        function saveData() {
+            localStorage.setItem('cisadane_sungai', JSON.stringify(appData.sungai));
+            localStorage.setItem('cisadane_warga', JSON.stringify(appData.warga));
+            localStorage.setItem('cisadane_truk', JSON.stringify(appData.truk));
+            applyFilters();
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            currentTab = tab;
+            ['dashboard', 'sungai', 'warga', 'truk'].forEach(t => {
+                const el = document.getElementById(`tab-content-${t}`);
+                const btn = document.getElementById(`nav-${t}`);
+                if (t === tab) {
+                    el.classList.remove('hidden');
+                    btn.className = "tab-btn px-4 py-2 rounded-lg font-medium text-sm transition bg-cyan-900 text-white shadow-sm whitespace-nowrap";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "tab-btn px-4 py-2 rounded-lg font-medium text-sm transition hover:bg-cyan-700/50 text-cyan-100 whitespace-nowrap";
+                }
+            });
+            renderTables();
+            if(tab === 'dashboard') {
+                initChart();
+            }
+        }
+
+        // Toast Notification
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            toastMsg.innerText = msg;
+            toastIcon.className = isError ? "fa-solid fa-circle-exclamation text-red-400 text-lg" : "fa-solid fa-circle-check text-cyan-400 text-lg";
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Image Preview Handler
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('receipt-base64').value = e.target.result;
+                    document.getElementById('receipt-preview-img').src = e.target.result;
+                    document.getElementById('receipt-preview-container').classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Lightbox View
+        function openLightbox(imgSrc) {
+            if(!imgSrc) return;
+            document.getElementById('lightbox-img').src = imgSrc;
+            document.getElementById('lightbox-download').href = imgSrc;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        }
+
+        // Render Tables with search filtering & Date filtering
+        function renderTables() {
+            // Sungai Table
+            const searchSungai = (document.getElementById('search-sungai')?.value || '').toLowerCase();
+            const filteredSungai = appData.sungai.filter(item => filterItemByDate(item)).filter(item => 
+                item.location.toLowerCase().includes(searchSungai) || 
+                item.officer.toLowerCase().includes(searchSungai) ||
+                item.wasteType.toLowerCase().includes(searchSungai)
+            );
+            const sungaiBody = document.getElementById('table-sungai-body');
+            sungaiBody.innerHTML = filteredSungai.length === 0 ? 
+                `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada data sampah sungai sesuai periode ini.</td></tr>` :
+                filteredSungai.map(item => `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 text-slate-600">${formatDate(item.date)}</td>
+                        <td class="p-4 font-medium text-slate-800">${item.location}</td>
+                        <td class="p-4"><span class="bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-md text-xs font-semibold">${item.wasteType}</span></td>
+                        <td class="p-4 font-bold text-slate-700">${Number(item.weight).toLocaleString('id-ID')} kg</td>
+                        <td class="p-4 text-slate-600">${item.officer}</td>
+                        <td class="p-4 text-center">
+                            ${item.receipt ? `<button onclick="openLightbox('${item.receipt}')" class="inline-flex items-center gap-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-image"></i> Lihat</button>` : `<span class="text-slate-300 text-xs">-</span>`}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="editItem('sungai', '${item.id}')" class="text-slate-400 hover:text-cyan-600 p-1.5 transition" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="confirmDelete('sungai', '${item.id}')" class="text-slate-400 hover:text-red-600 p-1.5 transition ml-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            // Warga Table
+            const searchWarga = (document.getElementById('search-warga')?.value || '').toLowerCase();
+            const filteredWarga = appData.warga.filter(item => filterItemByDate(item)).filter(item => 
+                item.citizen.toLowerCase().includes(searchWarga) || 
+                item.category.toLowerCase().includes(searchWarga)
+            );
+            const wargaBody = document.getElementById('table-warga-body');
+            wargaBody.innerHTML = filteredWarga.length === 0 ? 
+                `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada data setoran warga sesuai periode ini.</td></tr>` :
+                filteredWarga.map(item => `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 text-slate-600">${formatDate(item.date)}</td>
+                        <td class="p-4 font-medium text-slate-800">${item.citizen}</td>
+                        <td class="p-4"><span class="bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md text-xs font-semibold">${item.category}</span></td>
+                        <td class="p-4 font-bold text-slate-700">${Number(item.weight).toLocaleString('id-ID')} kg</td>
+                        <td class="p-4 text-slate-500 text-xs">${item.note || '-'}</td>
+                        <td class="p-4 text-center">
+                            ${item.receipt ? `<button onclick="openLightbox('${item.receipt}')" class="inline-flex items-center gap-1 bg-teal-50 hover:bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-image"></i> Lihat</button>` : `<span class="text-slate-300 text-xs">-</span>`}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="editItem('warga', '${item.id}')" class="text-slate-400 hover:text-cyan-600 p-1.5 transition" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="confirmDelete('warga', '${item.id}')" class="text-slate-400 hover:text-red-600 p-1.5 transition ml-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            // Truk Table
+            const searchTruk = (document.getElementById('search-truk')?.value || '').toLowerCase();
+            const filteredTruk = appData.truk.filter(item => filterItemByDate(item)).filter(item => 
+                item.plate.toLowerCase().includes(searchTruk) || 
+                item.driver.toLowerCase().includes(searchTruk) ||
+                item.destination.toLowerCase().includes(searchTruk)
+            );
+            const trukBody = document.getElementById('table-truk-body');
+            trukBody.innerHTML = filteredTruk.length === 0 ? 
+                `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada data truk keluar sesuai periode ini.</td></tr>` :
+                filteredTruk.map(item => `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 text-slate-600">${formatDate(item.date)}</td>
+                        <td class="p-4 font-mono font-bold text-slate-800">${item.plate}</td>
+                        <td class="p-4 text-slate-700">${item.driver}</td>
+                        <td class="p-4 text-slate-600"><span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md text-xs font-semibold">${item.destination}</span></td>
+                        <td class="p-4 font-bold text-slate-700">${Number(item.weight).toLocaleString('id-ID')} kg</td>
+                        <td class="p-4 text-center">
+                            ${item.receipt ? `<button onclick="openLightbox('${item.receipt}')" class="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-image"></i> Lihat</button>` : `<span class="text-slate-300 text-xs">-</span>`}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="editItem('truk', '${item.id}')" class="text-slate-400 hover:text-cyan-600 p-1.5 transition" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="confirmDelete('truk', '${item.id}')" class="text-slate-400 hover:text-red-600 p-1.5 transition ml-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+        }
+
+        // Format Date nicely
+        function formatDate(dateString) {
+            if(!dateString) return '-';
+            const d = new Date(dateString);
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Update Dashboard Stats with Active Filter
+        function updateDashboard() {
+            const filteredSungaiList = appData.sungai.filter(item => filterItemByDate(item));
+            const filteredWargaList = appData.warga.filter(item => filterItemByDate(item));
+            const filteredTrukList = appData.truk.filter(item => filterItemByDate(item));
+
+            const totalSungai = filteredSungaiList.reduce((sum, item) => sum + Number(item.weight), 0);
+            const totalWarga = filteredWargaList.reduce((sum, item) => sum + Number(item.weight), 0);
+            const totalTruk = filteredTrukList.reduce((sum, item) => sum + Number(item.weight), 0);
+            const sisaTps = (totalSungai + totalWarga) - totalTruk;
+
+            document.getElementById('stat-sungai').innerText = totalSungai.toLocaleString('id-ID') + ' kg';
+            document.getElementById('stat-warga').innerText = totalWarga.toLocaleString('id-ID') + ' kg';
+            document.getElementById('stat-truk').innerText = totalTruk.toLocaleString('id-ID') + ' kg';
+            
+            const sisaEl = document.getElementById('stat-sisa');
+            sisaEl.innerText = (sisaTps >= 0 ? sisaTps : 0).toLocaleString('id-ID') + ' kg';
+            
+            if(currentTab === 'dashboard') {
+                initChart(totalSungai, totalWarga, totalTruk);
+            }
+        }
+
+        // Export Backup JSON with Receipts & Direct Download for Mobile Memory
+        function exportDataJSON() {
+            const exportPayload = {
+                appName: "River Impact Cisadane Data Backup",
+                exportDate: new Date().toISOString(),
+                filterMode: activeFilterMode,
+                data: appData
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `river_impact_cisadane_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Cadangan data lengkap beserta foto struk berhasil diunduh!');
+        }
+
+        // Direct Download File to Mobile Memory (.json and standalone HTML app)
+        function downloadDeviceMemory() {
+            exportDataJSON();
+            setTimeout(() => {
+                const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `River_Impact_Cisadane_App_${new Date().toISOString().slice(0,10)}.html`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showToast('Aplikasi lengkap & database tersimpan ke memori HP!');
+            }, 600);
+        }
+
+        function downloadExcel() {
+            let csvContent = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+            csvContent += "=== LAPORAN SAMPAH SUNGAI CISADANE ===\r\n";
+            csvContent += "ID,Tanggal,Lokasi/Sektor,Jenis Sampah,Berat (kg),Petugas,Ada Foto Struk\r\n";
+            appData.sungai.forEach(item => {
+                csvContent += `"${item.id}","${item.date}","${item.location}","${item.wasteType}",${item.weight},"${item.officer}","${item.receipt ? 'Ya' : 'Tidak'}"\r\n`;
+            });
+
+            csvContent += "\r\n=== LAPORAN SETORAN WARGA ===\r\n";
+            csvContent += "ID,Tanggal,Petugas Pengangkutan,Kategori,Berat (kg),Catatan,Ada Foto Struk\r\n";
+            appData.warga.forEach(item => {
+                csvContent += `"${item.id}","${item.date}","${item.citizen}","${item.category}",${item.weight},"${item.note || ''}","${item.receipt ? 'Ya' : 'Tidak'}"\r\n`;
+            });
+
+            csvContent += "\r\n=== LAPORAN TRUK KELUAR TPA ===\r\n";
+            csvContent += "ID,Tanggal,No. Polisi,Sopir,Tujuan TPA,Berat (kg),Ada Foto Struk\r\n";
+            appData.truk.forEach(item => {
+                csvContent += `"${item.id}","${item.date}","${item.plate}","${item.driver}","${item.destination}",${item.weight},"${item.receipt ? 'Ya' : 'Tidak'}"\r\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `River_Impact_Cisadane_Laporan_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('File Excel (CSV) berhasil diunduh ke perangkat!');
+        }
+
+        function downloadPDF() {
+            const printWindow = window.open('', '_blank');
+            const totalSungai = appData.sungai.reduce((acc, curr) => acc + Number(curr.weight), 0);
+            const totalWarga = appData.warga.reduce((acc, curr) => acc + Number(curr.weight), 0);
+            const totalTruk = appData.truk.reduce((acc, curr) => acc + Number(curr.weight), 0);
+            const sisaTPS = (totalSungai + totalWarga) - totalTruk;
+
+            let html = `
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Laporan Resmi River Impact Cisadane</title>
+                    <style>
+                        body { font-family: sans-serif; color: #1e293b; padding: 25px; }
+                        h1, h2 { color: #0e7490; margin-bottom: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 30px; font-size: 11px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+                        th { background-color: #f1f5f9; }
+                        .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>RIVER IMPACT CISADANE</h1>
+                    <p>Laporan Resmi Rekapitulasi Pengelolaan Sampah</p>
+                    <p style="font-size: 12px; color: #64748b;">Tanggal Cetak: ${new Date().toLocaleString('id-ID')}</p>
+                    
+                    <div class="summary-box">
+                        <h3>Ringkasan Statistik Keseluruhan</h3>
+                        <p>Total Sampah Sungai: <strong>${totalSungai.toLocaleString('id-ID')} kg</strong></p>
+                        <p>Total Setoran Warga: <strong>${totalWarga.toLocaleString('id-ID')} kg</strong></p>
+                        <p>Total Truk Keluar: <strong>${totalTruk.toLocaleString('id-ID')} kg</strong></p>
+                        <p>Estimasi Sisa di TPS: <strong>${sisaTPS >= 0 ? sisaTPS : 0} kg</strong></p>
+                    </div>
+
+                    <h2>1. Sampah Masuk Sungai Cisadane</h2>
+                    <table>
+                        <tr><th>Tanggal</th><th>Lokasi / Sektor</th><th>Jenis Sampah</th><th>Berat (kg)</th><th>Petugas</th></tr>
+                        ${appData.sungai.map(i => `<tr><td>${formatDate(i.date)}</td><td>${i.location}</td><td>${i.wasteType}</td><td>${Number(i.weight).toLocaleString('id-ID')}</td><td>${i.officer}</td></tr>`).join('')}
+                    </table>
+
+                    <h2>2. Setoran Sampah Warga</h2>
+                    <table>
+                        <tr><th>Tanggal</th><th>Petugas Pengangkutan</th><th>Kategori</th><th>Berat (kg)</th><th>Catatan</th></tr>
+                        ${appData.warga.map(i => `<tr><td>${formatDate(i.date)}</td><td>${i.citizen}</td><td>${i.category}</td><td>${Number(i.weight).toLocaleString('id-ID')}</td><td>${i.note || '-'}</td></tr>`).join('')}
+                    </table>
+
+                    <h2>3. Truk Keluar ke TPA</h2>
+                    <table>
+                        <tr><th>Tanggal</th><th>No. Polisi</th><th>Sopir</th><th>Tujuan TPA</th><th>Berat (kg)</th></tr>
+                        ${appData.truk.map(i => `<tr><td>${formatDate(i.date)}</td><td>${i.plate}</td><td>${i.driver}</td><td>${i.destination}</td><td>${Number(i.weight).toLocaleString('id-ID')}</td></tr>`).join('')}
+                    </table>
+
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `;
+            printWindow.document.write(html);
+            printWindow.document.close();
+            showToast('Menyiapkan dokumen cetak PDF...');
+        }
+
+        // Modal Controls
+        function openModal(type, editData = null) {
+            const modal = document.getElementById('form-modal');
+            const title = document.getElementById('modal-title');
+            const formType = document.getElementById('form-type');
+            const editId = document.getElementById('edit-id');
+            const fieldsContainer = document.getElementById('dynamic-fields');
+            const dateInput = document.getElementById('input-date');
+            const receiptBase64 = document.getElementById('receipt-base64');
+            const receiptPreviewContainer = document.getElementById('receipt-preview-container');
+            const receiptPreviewImg = document.getElementById('receipt-preview-img');
+            const inputReceipt = document.getElementById('input-receipt');
+
+            modal.classList.remove('hidden');
+            formType.value = type;
+            inputReceipt.value = '';
+
+            if(!editData) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                dateInput.value = now.toISOString().slice(0, 16);
+                editId.value = '';
+                receiptBase64.value = '';
+                receiptPreviewContainer.classList.add('hidden');
+            } else {
+                dateInput.value = editData.date;
+                editId.value = editData.id;
+                receiptBase64.value = editData.receipt || '';
+                if(editData.receipt) {
+                    receiptPreviewImg.src = editData.receipt;
+                    receiptPreviewContainer.classList.remove('hidden');
+                } else {
+                    receiptPreviewContainer.classList.add('hidden');
+                }
+            }
+
+            if(type === 'sungai') {
+                title.innerText = editData ? 'Edit Data Sampah Sungai' : 'Tambah Sampah Masuk Sungai Cisadane';
+                fieldsContainer.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Lokasi / Sektor Cisadane</label>
+                        <input type="text" id="field-location" required placeholder="Contoh: Interceptor / Jembatan Cisadane" value="${editData ? editData.location : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Jenis Sampah Utama</label>
+                        <select id="field-wasteType" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <option value="Plastik & Organik Campur" ${editData && editData.wasteType === 'Plastik & Organik Campur' ? 'selected':''}>Plastik & Organik Campur</option>
+                            <option value="Limbah Plastik Botol" ${editData && editData.wasteType === 'Limbah Plastik Botol' ? 'selected':''}>Limbah Plastik Botol</option>
+                            <option value="Sampah Domestik Aliran" ${editData && editData.wasteType === 'Sampah Domestik Aliran' ? 'selected':''}>Sampah Domestik Aliran</option>
+                            <option value="Limbah Kayu & Ranting" ${editData && editData.wasteType === 'Limbah Kayu & Ranting' ? 'selected':''}>Limbah Kayu & Ranting</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Berat Total (kg)</label>
+                        <input type="number" id="field-weight" required min="1" placeholder="Contoh: 150" value="${editData ? editData.weight : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Petugas / Tim Lapangan</label>
+                        <input type="text" id="field-officer" required placeholder="Contoh: Tim Interceptor Cisadane 020" value="${editData ? editData.officer : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                `;
+            } else if(type === 'warga') {
+                title.innerText = editData ? 'Edit Data Setoran Warga' : 'Tambah Setoran Sampah Warga';
+                fieldsContainer.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Petugas Pengangkutan</label>
+                        <input type="text" id="field-citizen" required placeholder="Contoh: Acan" value="${editData ? editData.citizen : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kategori Sampah</label>
+                        <select id="field-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <option value="Plastik Daur Ulang" ${editData && editData.category === 'Plastik Daur Ulang' ? 'selected':''}>Plastik Daur Ulang</option>
+                            <option value="Kertas & Kardus" ${editData && editData.category === 'Kertas & Kardus' ? 'selected':''}>Kertas & Kardus</option>
+                            <option value="Organik Rumah Tangga" ${editData && editData.category === 'Organik Rumah Tangga' ? 'selected':''}>Organik Rumah Tangga</option>
+                            <option value="Logam / B3 Kecil" ${editData && editData.category === 'Logam / B3 Kecil' ? 'selected':''}>Logam / B3 Kecil</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Berat (kg)</label>
+                        <input type="number" id="field-weight" required min="1" placeholder="Contoh: 25" value="${editData ? editData.weight : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Catatan Tambahan (Opsional)</label>
+                        <input type="text" id="field-note" placeholder="Contoh: Sudah dipilah bersih" value="${editData ? (editData.note || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                `;
+            } else if(type === 'truk') {
+                title.innerText = editData ? 'Edit Data Truk Keluar' : 'Tambah Catatan Truk Keluar';
+                fieldsContainer.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nomor Polisi Truk</label>
+                        <input type="text" id="field-plate" required placeholder="Contoh: F 8421 EA" value="${editData ? editData.plate : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Sopir</label>
+                        <input type="text" id="field-driver" required placeholder="Contoh: Salim" value="${editData ? editData.driver : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tujuan Pengangkutan (TPA)</label>
+                        <input type="text" id="field-destination" required placeholder="Contoh: TPA Jatiwaringin" value="${editData ? editData.destination : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Berat Muatan Truk (kg)</label>
+                        <input type="number" id="field-weight" required min="1" placeholder="Contoh: 1200" value="${editData ? editData.weight : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                `;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('form-modal').classList.add('hidden');
+        }
+
+        // Handle Form Submit
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const type = document.getElementById('form-type').value;
+            const editId = document.getElementById('edit-id').value;
+            const date = document.getElementById('input-date').value;
+            const receipt = document.getElementById('receipt-base64').value;
+
+            let newData = {
+                id: editId ? editId : Date.now().toString(),
+                date: date,
+                receipt: receipt
+            };
+
+            if(type === 'sungai') {
+                newData.location = document.getElementById('field-location').value;
+                newData.wasteType = document.getElementById('field-wasteType').value;
+                newData.weight = Number(document.getElementById('field-weight').value);
+                newData.officer = document.getElementById('field-officer').value;
+
+                if(editId) {
+                    appData.sungai = appData.sungai.map(item => item.id === editId ? { ...newData, receipt: receipt || item.receipt } : item);
+                } else {
+                    appData.sungai.unshift(newData);
+                }
+            } else if(type === 'warga') {
+                newData.citizen = document.getElementById('field-citizen').value;
+                newData.category = document.getElementById('field-category').value;
+                newData.weight = Number(document.getElementById('field-weight').value);
+                newData.note = document.getElementById('field-note').value;
+
+                if(editId) {
+                    appData.warga = appData.warga.map(item => item.id === editId ? { ...newData, receipt: receipt || item.receipt } : item);
+                } else {
+                    appData.warga.unshift(newData);
+                }
+            } else if(type === 'truk') {
+                newData.plate = document.getElementById('field-plate').value;
+                newData.driver = document.getElementById('field-driver').value;
+                newData.destination = document.getElementById('field-destination').value;
+                newData.weight = Number(document.getElementById('field-weight').value);
+
+                if(editId) {
+                    appData.truk = appData.truk.map(item => item.id === editId ? { ...newData, receipt: receipt || item.receipt } : item);
+                } else {
+                    appData.truk.unshift(newData);
+                }
+            }
+
+            saveData();
+            renderTables();
+            closeModal();
+            showToast('Data & foto struk berhasil disimpan!');
+        }
+
+        // Edit Item Helper
+        function editItem(type, id) {
+            const item = appData[type].find(i => i.id === id);
+            if(item) {
+                openModal(type, item);
+            }
+        }
+
+        // Confirm Delete
+        function confirmDelete(type, id) {
+            deleteTarget = { type, id, mode: 'single' };
+            document.getElementById('confirm-title').innerText = "Hapus Data?";
+            document.getElementById('confirm-desc').innerText = "Data dan foto struk yang dihapus tidak dapat dikembalikan lagi.";
+            document.getElementById('confirm-delete-btn').innerText = "Hapus";
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        // Confirm Reset All Data
+        function confirmResetAllData() {
+            deleteTarget = { mode: 'all' };
+            document.getElementById('confirm-title').innerText = "Reset Semua Data?";
+            document.getElementById('confirm-desc').innerText = "Semua riwayat pencatatan sampah sungai, warga, dan truk akan dihapus permanen dari perangkat.";
+            document.getElementById('confirm-delete-btn').innerText = "Ya, Reset Semua";
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            deleteTarget = { type: null, id: null, mode: null };
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+            if(deleteTarget.mode === 'all') {
+                appData = { sungai: [], warga: [], truk: [] };
+                saveData();
+                renderTables();
+                closeConfirmModal();
+                showToast('Semua data berhasil di-reset!', true);
+            } else if(deleteTarget.type && deleteTarget.id) {
+                appData[deleteTarget.type] = appData[deleteTarget.type].filter(item => item.id !== deleteTarget.id);
+                saveData();
+                renderTables();
+                closeConfirmModal();
+                showToast('Data berhasil dihapus!', true);
+            }
+        });
+
+        // Initialize Chart
+        function initChart(customSungai = null, customWarga = null, customTruk = null) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            const totalSungai = customSungai !== null ? customSungai : appData.sungai.filter(item => filterItemByDate(item)).reduce((sum, item) => sum + Number(item.weight), 0);
+            const totalWarga = customWarga !== null ? customWarga : appData.warga.filter(item => filterItemByDate(item)).reduce((sum, item) => sum + Number(item.weight), 0);
+            const totalTruk = customTruk !== null ? customTruk : appData.truk.filter(item => filterItemByDate(item)).reduce((sum, item) => sum + Number(item.weight), 0);
+
+            if(mainChartInstance) {
+                mainChartInstance.destroy();
+            }
+
+            mainChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Sampah Sungai', 'Setoran Warga', 'Truk Keluar (TPA)'],
+                    datasets: [{
+                        label: 'Berat Total (kg)',
+                        data: [totalSungai, totalWarga, totalTruk],
+                        backgroundColor: [
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(20, 184, 166, 0.8)',
+                            'rgba(245, 158, 11, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgb(6, 182, 212)',
+                            'rgb(20, 184, 166)',
+                            'rgb(245, 158, 11)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(241, 245, 249, 1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initial Load
+        window.onload = function() {
+            updateDashboard();
+            renderTables();
+            initChart();
+        };
+    </script>
+</body>
+</html>
+```
